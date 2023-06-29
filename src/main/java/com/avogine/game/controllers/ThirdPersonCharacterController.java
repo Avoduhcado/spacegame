@@ -32,8 +32,6 @@ public class ThirdPersonCharacterController implements KeyboardListener, MouseMo
 	public ThirdPersonCharacterController(PhysicsComponent characterPhysics) {
 		this.characterPhysics = characterPhysics;
 		this.inputDirection = new Vector3f();
-		
-		
 	}
 
 	@Override

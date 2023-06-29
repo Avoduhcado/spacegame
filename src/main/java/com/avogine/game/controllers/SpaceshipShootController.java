@@ -2,13 +2,12 @@ package com.avogine.game.controllers;
 
 import static java.lang.Math.toRadians;
 
-import org.joml.Vector3f;
+import org.joml.*;
 import org.lwjgl.glfw.GLFW;
 
 import com.avogine.audio.data.*;
 import com.avogine.audio.loader.AudioCache;
-import com.avogine.ecs.EntityManager;
-import com.avogine.ecs.addons.ModelCache;
+import com.avogine.ecs.*;
 import com.avogine.ecs.components.*;
 import com.avogine.game.Game;
 import com.avogine.game.entity.components.*;
@@ -32,6 +31,10 @@ public class SpaceshipShootController implements MouseClickListener, Updateable 
 	private final AudioComponent spaceshipAudio;
 	private static final String BULLET_MODEL_NAME = "bullet";
 	
+	private final Quaternionf spaceshipOrientation;
+	
+	private final Vector3f bulletPosition;
+	
 	private boolean shot;
 	private float shootCooldown;
 	
@@ -40,6 +43,7 @@ public class SpaceshipShootController implements MouseClickListener, Updateable 
 	/**
 	 * @param spaceshipTransform 
 	 * @param spaceshipPhysics 
+	 * @param spaceshipAudio 
 	 * 
 	 */
 	public SpaceshipShootController(TransformComponent spaceshipTransform, PhysicsComponent spaceshipPhysics, AudioComponent spaceshipAudio) {
@@ -47,6 +51,9 @@ public class SpaceshipShootController implements MouseClickListener, Updateable 
 		this.spaceshipPhysics = spaceshipPhysics;
 		this.spaceshipAudio = spaceshipAudio;
 		this.shootCooldown = 1.0f / 12.0f;
+		
+		spaceshipOrientation = new Quaternionf();
+		bulletPosition = new Vector3f();
 	}
 	
 	@Override
@@ -60,6 +67,10 @@ public class SpaceshipShootController implements MouseClickListener, Updateable 
 	public void onRegister(Game game) {
 		// TODO Introduce some sort of window cache that's available for the game to query during instances such as registering.
 		game.getWindow().getInput().add(this);
+		
+		var material = new TexturedMaterial(TextureCache.getInstance().getTexture("laser.png"));
+		Mesh bulletMesh = new ParShapesBuilder().createCapsule(1f, 2.5f).scale(0.2f, 0.2f, 0.2f).rotate((float) toRadians(90), new float[] {1, 0, 0}).build();
+		Models.CACHE.putModel(BULLET_MODEL_NAME, new Model(bulletMesh, material));
 		
 		laserBuffer = AudioCache.getInstance().getSound("blaster-3.ogg");
 	}
@@ -84,29 +95,20 @@ public class SpaceshipShootController implements MouseClickListener, Updateable 
 	}
 	
 	private void buildBullets(EntityManager manager) {
-		var modelCache = manager.getAddon(ModelCache.class).orElseGet(ModelCache.registerModelCache(manager));
-		if (!modelCache.contains(BULLET_MODEL_NAME)) {
-			var material = new TexturedMaterial(TextureCache.getInstance().getTexture("laser.png"));
-			Mesh bulletMesh = new ParShapesBuilder().createCapsule(1f, 2.5f).scale(0.2f, 0.2f, 0.2f).rotate((float) toRadians(90), new float[] {1, 0, 0}).build();
-			modelCache.putModel(BULLET_MODEL_NAME, new Model(bulletMesh, material));
-		}
+		spaceshipOrientation.set(spaceshipTransform.rx(), spaceshipTransform.ry(), spaceshipTransform.rz(), spaceshipTransform.rw());
 		
-		var bulletTransform = new TransformComponent();
-		var positionOffset = spaceshipTransform.orientation().transform(new Vector3f(-0.5f, 0, -1f));
-		positionOffset.add(spaceshipTransform.position());
-		bulletTransform.setPosition(positionOffset);
-		bulletTransform.setOrientation(spaceshipTransform.orientation());
+		bulletPosition.set(-0.5f, 0, -1f).rotate(spaceshipOrientation).add(spaceshipTransform.x(), spaceshipTransform.y(), spaceshipTransform.z());
+		var bulletTransform = new TransformComponent(bulletPosition.x, bulletPosition.y, bulletPosition.z,
+				spaceshipOrientation.x, spaceshipOrientation.y, spaceshipOrientation.z, spaceshipOrientation.w);
 		// TODO Bullet speed should be relative to spaceship speed, or else if you're moving too fast bullets will trail behind you
 		var bulletPhysics = new PhysicsComponent(new Vector3f(0, 0, -200f).add(spaceshipPhysics.getVelocity()), new Vector3f(), 200f, 0, 0);
 		var model = new ModelComponent(BULLET_MODEL_NAME);
 		var projectile = new ProjectileComponent(3.5f);
 		manager.createEntityWith(bulletTransform, bulletPhysics, model, projectile);
-		
-		bulletTransform = new TransformComponent();
-		positionOffset = spaceshipTransform.orientation().transform(new Vector3f(0.5f, 0, -1f));
-		positionOffset.add(spaceshipTransform.position());
-		bulletTransform.setPosition(positionOffset);
-		bulletTransform.setOrientation(spaceshipTransform.orientation());
+
+		bulletPosition.set(0.5f, 0, -1f).rotate(spaceshipOrientation).add(spaceshipTransform.x(), spaceshipTransform.y(), spaceshipTransform.z());
+		bulletTransform = new TransformComponent(bulletPosition.x, bulletPosition.y, bulletPosition.z,
+				spaceshipOrientation.x, spaceshipOrientation.y, spaceshipOrientation.z, spaceshipOrientation.w);
 		model = new ModelComponent(BULLET_MODEL_NAME);
 		manager.createEntityWith(bulletTransform, new PhysicsComponent(bulletPhysics), model, new ProjectileComponent(projectile));
 	}
