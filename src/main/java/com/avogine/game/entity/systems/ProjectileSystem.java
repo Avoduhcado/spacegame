@@ -1,6 +1,9 @@
 package com.avogine.game.entity.systems;
 
 import java.util.*;
+import java.util.stream.Collectors;
+
+import org.joml.*;
 
 import com.avogine.ecs.EntityManager;
 import com.avogine.ecs.components.TransformComponent;
@@ -14,10 +17,20 @@ import com.avogine.game.util.*;
  */
 public class ProjectileSystem implements Updateable {
 
+	private final Set<UUID> projectilesToRemove;
+	private final Set<UUID> hitList;
+	
+	private final Quaternionf projectileOrientation;
+	private final Vector3f projectileDirection;
+	
 	/**
 	 * 
 	 */
 	public ProjectileSystem() {
+		projectilesToRemove = new HashSet<>();
+		hitList = new HashSet<>();
+		projectileOrientation = new Quaternionf();
+		projectileDirection = new Vector3f();
 	}
 
 	@Override
@@ -32,8 +45,8 @@ public class ProjectileSystem implements Updateable {
 	}
 	
 	private void process(EntityManager manager, float delta) {
-		Set<UUID> projectilesToRemove = new HashSet<>();
-//		Set<UUID> hitList = new HashSet<>();
+		projectilesToRemove.clear();
+		hitList.clear();
 		
 		// TODO The physics system should handle updating collider body positions and collision resolution with other entities
 //		List<Collidable> collidables = manager.query(Collidable.class).collect(Collectors.toList());
@@ -45,48 +58,50 @@ public class ProjectileSystem implements Updateable {
 //				});
 //		});
 		
+		var shootables = manager.query(ShootableTag.class, TransformComponent.class)
+				.collect(Collectors.toList());
+		
 		manager.query(ProjectileComponent.class, TransformComponent.class, PhysicsComponent.class).forEach(chunk -> {
 			for (int i = 0; i < chunk.getChunkSize(); i++) {
 				var projectile = chunk.getAs(ProjectileComponent.class, i);
 				projectile.setTimeToLive(projectile.getTimeToLive() - delta);
 				if (projectile.getTimeToLive() <= 0) {
 					projectilesToRemove.add(chunk.getID(i));
+					continue;
 				}
+				var transform = chunk.getAs(TransformComponent.class, i);
+				var physics = chunk.getAs(PhysicsComponent.class, i);
+				transform.orientation(projectileOrientation);
+				projectileOrientation.transformUnitPositiveZ(projectileDirection).mul(-1);
+				var ray = new RayAabIntersection(transform.x(), transform.y(), transform.z(), projectileDirection.x, projectileDirection.y, projectileDirection.z);
+				float pSpeed = physics.getVelocity().length() * delta;
+				UUID id = chunk.getID(i);
+				
+				shootables.stream()
+				.takeWhile(shootChunk -> !projectilesToRemove.contains(id))
+				.forEach(shootChunk -> {
+					for (int j = 0; j < shootChunk.getChunkSize(); j++) {
+						if (hitList.contains(shootChunk.getID(j))) {
+							continue;
+						}
+						var targetTransform = shootChunk.getAs(TransformComponent.class, j);
+						if (Vector3f.distance(transform.x(), transform.y(), transform.z(), targetTransform.x(), targetTransform.y(), targetTransform.z()) > pSpeed * 2) {
+							continue;
+						}
+						
+						boolean rayTest = ray.test(targetTransform.x() - targetTransform.sx(), targetTransform.y() - targetTransform.sy(), targetTransform.z() - targetTransform.sz(),
+								targetTransform.x() + targetTransform.sx(), targetTransform.y() + targetTransform.sy(), targetTransform.z() + targetTransform.sz());
+						if (rayTest) {
+							hitList.add(shootChunk.getID(j));
+							projectilesToRemove.add(id);
+							continue;
+						}
+					}
+				});
 			}
 		});
-//		manager.query(ProjectileArchetype.class).forEach(projectable -> {
-////			var pDirection = projectable.transform.orientation().transform(new Vector3f(0, 0, -1));
-////			var ray = new RayAabIntersection(projectable.transform.position().x, projectable.transform.position().y, projectable.transform.position().z,
-////					pDirection.x, pDirection.y, pDirection.z);
-////			var pSpeed = projectable.physics.getVelocity().length() * delta;
-////			
-////			// Loop through all hittable targets and check for collisions, the takeWhile will short-circuit the search if something's already been hit
-////			manager.query(Hittable.class)
-////			.takeWhile(hittable -> !projectilesToRemove.contains(projectable.id))
-////			.forEach(hittable -> {
-////				float distance = projectable.transform.position().distance(hittable.transform.position());
-////				if (distance > pSpeed * 2) {
-////					return;
-////				}
-////				
-////				boolean rayTest = ray.test(hittable.transform.position().x - hittable.transform.scale().x, hittable.transform.position().y - hittable.transform.scale().y, hittable.transform.position().z - hittable.transform.scale().z,
-////						hittable.transform.position().x + hittable.transform.scale().x, hittable.transform.position().y + hittable.transform.scale().y, hittable.transform.position().z + hittable.transform.scale().z);
-////				if (rayTest) {
-////					AvoLog.log().debug("Hit a planet at distance: {}", distance);
-////					hitList.add(hittable.id);
-////					projectilesToRemove.add(projectable.id);
-////				}
-////			});
-////			// Remove any hittable targets before the next iteration
-////			hitList.forEach(id -> manager.removeEntity(id));
-////			hitList.clear();
-//			
-//			projectable.projectile.setTimeToLive(projectable.projectile.getTimeToLive() - delta);
-//			if (projectable.projectile.getTimeToLive() <= 0) {
-//				projectilesToRemove.add(projectable.id);
-//			}
-//		});
 		
+		hitList.forEach(hitId -> manager.removeEntity(hitId));
 		projectilesToRemove.forEach(id -> manager.removeEntity(id));
 	}
 

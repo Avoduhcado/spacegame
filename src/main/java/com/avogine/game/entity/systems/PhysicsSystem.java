@@ -112,6 +112,7 @@ public class PhysicsSystem implements Updateable {
 	
 	@Override
 	public void onRegister(Game game) {
+		// Nothing to register
 	}
 	
 	@Override

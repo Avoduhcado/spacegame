@@ -95,7 +95,7 @@ public class SpaceshipShootController implements MouseClickListener, Updateable 
 	}
 	
 	private void buildBullets(EntityManager manager) {
-		spaceshipOrientation.set(spaceshipTransform.rx(), spaceshipTransform.ry(), spaceshipTransform.rz(), spaceshipTransform.rw());
+		spaceshipTransform.orientation(spaceshipOrientation);
 		
 		bulletPosition.set(-0.5f, 0, -1f).rotate(spaceshipOrientation).add(spaceshipTransform.x(), spaceshipTransform.y(), spaceshipTransform.z());
 		var bulletTransform = new TransformComponent(bulletPosition.x, bulletPosition.y, bulletPosition.z,

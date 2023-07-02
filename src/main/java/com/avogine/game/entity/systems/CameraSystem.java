@@ -76,8 +76,8 @@ public class CameraSystem implements Updateable {
 	private void updateCameraView(TransformComponent cameraTransform, TransformComponent focusTransform, PhysicsComponent focusPhysics, GameState gameState) {
 		float delta = gameState.delta();
 		Scene scene = gameState.scene();
-		focusOrientation.set(focusTransform.rx(), focusTransform.ry(), focusTransform.rz(), focusTransform.rw());
-		cameraOrientation.set(cameraTransform.rx(), cameraTransform.ry(), cameraTransform.rz(), cameraTransform.rw());
+		focusTransform.orientation(focusOrientation);
+		cameraTransform.orientation(cameraOrientation);
 		cameraTarget.set(0, 0, -1).rotate(focusOrientation);
 		cameraPosition.set(0, 1f, 7.5f);
 		
@@ -92,7 +92,7 @@ public class CameraSystem implements Updateable {
 			slerpTime = MathUtil.clamp(slerpTime - delta, 0, 1.5f);
 		}
 		cameraOrientation.slerp(focusOrientation, slerpTime);
-		cameraTransform.rx(cameraOrientation.x).ry(cameraOrientation.y).rz(cameraOrientation.z).rw(cameraOrientation.w);
+		cameraTransform.setOrientation(cameraOrientation);
 
 		// Narrow the FOV when moving faster
 		if (focusPhysics.getVelocity().length() > 0) {
@@ -105,7 +105,7 @@ public class CameraSystem implements Updateable {
 
 		// Position the camera to look at the target position slightly behind the spaceship
 		cameraOrientation.transform(cameraPosition).add(cameraTarget);
-		cameraTransform.x(cameraPosition.x).y(cameraPosition.y).z(cameraPosition.z);
+		cameraTransform.setPosition(cameraPosition);
 		scene.getView().setLookAt(cameraPosition, cameraTarget, focusOrientation.transformPositiveY(cameraUp));
 
 		// Apply random screen shake when moving fast

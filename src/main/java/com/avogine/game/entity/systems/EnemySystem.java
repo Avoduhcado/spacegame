@@ -67,10 +67,10 @@ public class EnemySystem implements Updateable {
 					// Set the enemy to look at the player's position
 					enemyOrientation.identity().lookAlong(playerTransform.x() - enemyTransform.x(), playerTransform.y() - enemyTransform.y(), playerTransform.z() - enemyTransform.z(),
 							0, 1, 0).invert();
-					enemyTransform.rx(enemyOrientation.x).ry(enemyOrientation.y).rz(enemyOrientation.z).rw(enemyOrientation.w);
+					enemyTransform.setOrientation(enemyOrientation);
 //					
 					// Super jank "follow" system
-					enemyPosition.set(enemyTransform.x(), enemyTransform.y(), enemyTransform.z());
+					enemyTransform.position(enemyPosition);
 					float distanceFromPlayer = enemyPosition.distance(playerTransform.x(), playerTransform.y(), playerTransform.z());
 					enemyPosition.sub(playerTransform.x(), playerTransform.y(), playerTransform.z(), followDistance);
 					followDistance.mul(1 - (distanceFromPlayer / 50));

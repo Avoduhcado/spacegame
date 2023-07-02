@@ -18,6 +18,9 @@ import com.avogine.io.listener.*;
 public class ThirdPersonCharacterController implements KeyboardListener, MouseMotionListener, MouseClickListener, Updateable {
 
 	private PhysicsComponent characterPhysics;
+
+	private boolean xInverted;
+	private boolean yInverted;
 	
 	private float lastX;
 	private float lastY;
@@ -32,6 +35,8 @@ public class ThirdPersonCharacterController implements KeyboardListener, MouseMo
 	public ThirdPersonCharacterController(PhysicsComponent characterPhysics) {
 		this.characterPhysics = characterPhysics;
 		this.inputDirection = new Vector3f();
+		xInverted = false;
+		yInverted = false;
 	}
 
 	@Override
@@ -73,8 +78,6 @@ public class ThirdPersonCharacterController implements KeyboardListener, MouseMo
 		
 		// TODO Make these customizable options
 		float sensitivity = 0.65f;
-		boolean xInverted = false;
-		boolean yInverted = false;
 		xOffset *= sensitivity;
 		yOffset *= sensitivity;
 
@@ -104,14 +107,16 @@ public class ThirdPersonCharacterController implements KeyboardListener, MouseMo
 
 	@Override
 	public void keyReleased(KeyboardEvent event) {
-		switch (event.key()) {
-		case GLFW.GLFW_KEY_LEFT_SHIFT, GLFW.GLFW_KEY_RIGHT_SHIFT -> characterPhysics.setBoost(false);
-		case GLFW.GLFW_KEY_SPACE -> turboBoost = false;
+		if (event.key() == GLFW.GLFW_KEY_LEFT_SHIFT || event.key() == GLFW.GLFW_KEY_RIGHT_SHIFT) {
+			characterPhysics.setBoost(false);
+		} else if (event.key() == GLFW.GLFW_KEY_SPACE) {
+			turboBoost = false;
 		}
 	}
 
 	@Override
 	public void keyTyped(KeyboardEvent event) {
+		// Not implemented
 	}
 	
 	@Override
