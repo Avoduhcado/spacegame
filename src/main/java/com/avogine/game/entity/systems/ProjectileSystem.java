@@ -1,7 +1,6 @@
 package com.avogine.game.entity.systems;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import org.joml.*;
 
@@ -11,6 +10,7 @@ import com.avogine.game.Game;
 import com.avogine.game.entity.components.*;
 import com.avogine.game.scene.ECSScene;
 import com.avogine.game.util.*;
+import com.avogine.logging.AvoLog;
 
 /**
  * TODO Scrap this for a real physics engine, or if you're crazy, don't have n^2 checks
@@ -58,22 +58,25 @@ public class ProjectileSystem implements Updateable {
 //				});
 //		});
 		
-		var shootables = manager.query(ShootableTag.class, TransformComponent.class)
-				.collect(Collectors.toList());
+		var shootables = manager.query(ShootableTag.class, TransformComponent.class).toList();
 		
 		manager.query(ProjectileComponent.class, TransformComponent.class, PhysicsComponent.class).forEach(chunk -> {
 			for (int i = 0; i < chunk.getChunkSize(); i++) {
 				var projectile = chunk.getAs(ProjectileComponent.class, i);
+				
 				projectile.setTimeToLive(projectile.getTimeToLive() - delta);
 				if (projectile.getTimeToLive() <= 0) {
 					projectilesToRemove.add(chunk.getID(i));
 					continue;
 				}
+				
 				var transform = chunk.getAs(TransformComponent.class, i);
 				var physics = chunk.getAs(PhysicsComponent.class, i);
+				
 				transform.orientation(projectileOrientation);
 				projectileOrientation.transformUnitPositiveZ(projectileDirection).mul(-1);
-				var ray = new RayAabIntersection(transform.x(), transform.y(), transform.z(), projectileDirection.x, projectileDirection.y, projectileDirection.z);
+				var ray = new RayAabIntersection(transform.x(), transform.y(), transform.z(),
+						projectileDirection.x, projectileDirection.y, projectileDirection.z);
 				float pSpeed = physics.getVelocity().length() * delta;
 				UUID id = chunk.getID(i);
 				
@@ -93,6 +96,7 @@ public class ProjectileSystem implements Updateable {
 								targetTransform.x() + targetTransform.sx(), targetTransform.y() + targetTransform.sy(), targetTransform.z() + targetTransform.sz());
 						if (rayTest) {
 							hitList.add(shootChunk.getID(j));
+							AvoLog.log().debug("Removing index {} in chunk with size {}", j, shootChunk.getChunkSize());
 							projectilesToRemove.add(id);
 							continue;
 						}
@@ -101,8 +105,8 @@ public class ProjectileSystem implements Updateable {
 			}
 		});
 		
-		hitList.forEach(hitId -> manager.removeEntity(hitId));
-		projectilesToRemove.forEach(id -> manager.removeEntity(id));
+		hitList.forEach(manager::removeEntity);
+		projectilesToRemove.forEach(manager::removeEntity);
 	}
 
 }
