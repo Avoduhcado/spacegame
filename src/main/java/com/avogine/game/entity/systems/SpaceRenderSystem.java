@@ -106,7 +106,7 @@ public class SpaceRenderSystem implements Renderable, Cleanupable {
 		glDepthFunc(GL_LEQUAL);
 		spaceShader.projection.loadMatrix(projection);
 		for (int i = 0; i < 6; i++) {
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, starCubeMap.id(), 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, starCubeMap.getId(), 0);
 
 			orientView(view, i);
 			spaceShader.view.loadMatrix(game.getCurrentScene().getView());
