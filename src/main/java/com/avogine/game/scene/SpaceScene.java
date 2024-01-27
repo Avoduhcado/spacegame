@@ -53,7 +53,7 @@ public class SpaceScene extends ECSScene {
 		game.register(new RenderSystem());
 		game.register(new PhysicsSystem());
 		game.register(new ProjectileSystem());
-		game.register(new SpaceRenderSystem());
+		game.register(new StarmapRender());
 		game.register(new PlanetRenderSystem());
 		game.register(new EnemySystem());
 		game.register(new AudioSystem());

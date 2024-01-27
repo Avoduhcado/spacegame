@@ -31,7 +31,7 @@
   <dependencies>
   	<dependency>
   		<groupId>com.avogine</groupId>
-  		<artifactId>base</artifactId>
+  		<artifactId>ecs</artifactId>
   		<version>0.0.1-SNAPSHOT</version>
   	</dependency>
   	<dependency>
